@@ -1,16 +1,86 @@
-# React + Vite
+# Prompt Tester
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AI 프롬프트를 비교하고 최적화하는 웹 애플리케이션
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 프로젝트 소개
 
-## React Compiler
+프롬프트 A와 B를 동시에 Gemini AI에 보내 결과를 나란히 비교하고, AI가 어떤 프롬프트가 더 효과적인지 자동으로 분석해주는 툴입니다.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+프롬프트를 하나만 입력하면 AI가 개선된 버전을 자동 생성해 원본과 비교해주는 **자동 개선 모드**도 지원합니다. 테스트 결과는 히스토리로 저장되어 언제든 다시 불러볼 수 있고, PDF로 저장하거나 클립보드에 복사할 수 있습니다.
 
-## Expanding the ESLint configuration
+## 만든 이유
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+AI를 활용할수록 프롬프트 품질이 결과물의 질을 크게 좌우한다는 걸 느꼈습니다. 그런데 프롬프트를 개선할 때 매번 채팅창을 오가며 눈으로 비교하는 방식은 비효율적이었습니다.
+
+"두 프롬프트를 동시에 실행하고, AI가 어느 쪽이 더 좋은지 근거와 함께 알려준다면?" — 이 아이디어를 직접 구현했습니다.
+
+## 주요 기능
+
+| 기능 | 설명 |
+|------|------|
+| A/B 비교 모드 | 프롬프트 A · B를 동시에 Gemini에 전송, 결과를 나란히 표시 |
+| 자동 개선 모드 | 프롬프트 1개 입력 시 AI가 개선된 버전을 자동 생성해 비교 |
+| AI 종합 분석 | 두 결과물을 분석해 승자 선정, 1~10점 점수, 강점·약점, 추천 이유 제공 |
+| 히스토리 | 테스트 결과를 로컬 스토리지에 저장, 클릭 한 번으로 결과 복원 |
+| 결과 내보내기 | 결과 전체를 클립보드 복사 또는 PDF로 저장 |
+
+## 기술 스택
+
+- **프론트엔드** React, Vite
+- **AI** Google Gemini API (`gemini-2.5-flash-lite`)
+- **상태 저장** localStorage (히스토리)
+
+## 화면 구성
+
+```
+┌──────────────┬──────────────────────────────────────┐
+│              │  모드 탭 (A/B 비교 / 자동 개선)       │
+│  히스토리    │  프롬프트 입력 (A / B)                │
+│  패널        │  ─────────────────────────────────    │
+│              │  결과 카드 (A / B)                    │
+│  · 날짜      │  AI 종합 분석                         │
+│  · 승자      │  결과 복사 / PDF로 저장               │
+│  · 점수      │                                       │
+└──────────────┴──────────────────────────────────────┘
+```
+
+## 로컬 실행 방법
+
+**1. 저장소 클론**
+
+```bash
+git clone https://github.com/yooona12/prompt-tester.git
+cd prompt-tester
+```
+
+**2. 패키지 설치**
+
+```bash
+npm install
+```
+
+**3. 환경 변수 설정**
+
+```bash
+cp .env.example .env
+```
+
+`.env` 파일에 Gemini API 키를 입력합니다.
+
+```
+VITE_GEMINI_API_KEY=your_api_key_here
+```
+
+API 키는 [Google AI Studio](https://aistudio.google.com)에서 발급받을 수 있습니다.
+
+**4. 개발 서버 실행**
+
+```bash
+npm run dev
+```
+
+## 라이선스
+
+MIT
