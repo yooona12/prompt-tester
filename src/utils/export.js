@@ -1,3 +1,22 @@
+export function shareAsUrl({ promptA, outputA, promptB, outputB, analysis, timestamp }) {
+  const data = { promptA, outputA, promptB, outputB, analysis, timestamp };
+  const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
+  const url = `${window.location.origin}${window.location.pathname}#share=${encoded}`;
+  return navigator.clipboard.writeText(url);
+}
+
+export function loadSharedFromUrl() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#share=')) return null;
+  try {
+    const data = JSON.parse(decodeURIComponent(atob(hash.slice(7))));
+    window.history.replaceState(null, '', window.location.pathname);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 function escapeHtml(str = '') {
   return str
     .replace(/&/g, '&amp;')

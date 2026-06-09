@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PromptInput from './components/PromptInput';
 import ResultCard from './components/ResultCard';
 import AnalysisCard from './components/AnalysisCard';
 import HistoryPanel from './components/HistoryPanel';
 import { runPrompt, improvePrompt, analyzeResults } from './api/gemini';
 import { useHistory } from './hooks/useHistory';
-import { copyResult, savePDF } from './utils/export';
+import { useTemplates, CATEGORIES } from './hooks/useTemplates';
+import { copyResult, savePDF, shareAsUrl, loadSharedFromUrl } from './utils/export';
 import './App.css';
 
 const MODES = {
@@ -31,8 +32,28 @@ export default function App() {
 
   const [copied, setCopied] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
+  const [sharedCopied, setSharedCopied] = useState(false);
+
+  // 템플릿 저장 모달
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [saveCategory, setSaveCategory] = useState('기타');
 
   const { history, addHistory, deleteHistory, clearHistory } = useHistory();
+  const { templates, saveTemplate, deleteTemplate } = useTemplates();
+
+  // URL 공유 데이터 로드
+  useEffect(() => {
+    const shared = loadSharedFromUrl();
+    if (shared) {
+      setPromptA(shared.promptA ?? '');
+      setPromptB(shared.promptB ?? '');
+      setOutputA(shared.outputA ?? '');
+      setOutputB(shared.outputB ?? '');
+      setAnalysis(shared.analysis ?? null);
+      setCurrentTimestamp(shared.timestamp ?? null);
+    }
+  }, []);
 
   const isRunning = loadingA || loadingB || loadingAnalysis || loadingImprove;
   const canRun = mode === MODES.COMPARE ? promptA.trim() && promptB.trim() : promptA.trim();
@@ -136,6 +157,32 @@ export default function App() {
     setTimeout(() => setSavingPdf(false), 1000);
   }
 
+  async function handleShare() {
+    await shareAsUrl({ promptA, outputA, promptB, outputB, analysis, timestamp: currentTimestamp });
+    setSharedCopied(true);
+    setTimeout(() => setSharedCopied(false), 3000);
+  }
+
+  function handleLoadTemplate(template) {
+    setPromptA(template.promptA);
+    setPromptB(template.promptB || '');
+    setOutputA('');
+    setOutputB('');
+    setAnalysis(null);
+    setError('');
+    setActiveHistoryId(null);
+    setCurrentTimestamp(null);
+  }
+
+  function handleSaveTemplate(e) {
+    e.preventDefault();
+    if (!saveName.trim()) return;
+    saveTemplate({ name: saveName, category: saveCategory, promptA, promptB });
+    setShowSaveModal(false);
+    setSaveName('');
+    setSaveCategory('기타');
+  }
+
   return (
     <div className="app">
       <header className="header">
@@ -155,6 +202,9 @@ export default function App() {
           onDelete={deleteHistory}
           onClear={clearHistory}
           activeId={activeHistoryId}
+          templates={templates}
+          onLoadTemplate={handleLoadTemplate}
+          onDeleteTemplate={deleteTemplate}
         />
 
         <main className="main">
@@ -210,6 +260,14 @@ export default function App() {
             <div className="actions-row">
               {error && <span className="error-msg">⚠ {error}</span>}
               <div className="buttons">
+                <button
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => { setSaveName(''); setShowSaveModal(true); }}
+                  disabled={!promptA.trim() || isRunning}
+                  title="현재 프롬프트를 템플릿으로 저장"
+                >
+                  📌 저장
+                </button>
                 <button className="btn btn--ghost" onClick={handleReset} disabled={isRunning}>
                   초기화
                 </button>
@@ -268,12 +326,60 @@ export default function App() {
                   >
                     {savingPdf ? 'PDF 생성 중...' : 'PDF로 저장'}
                   </button>
+                  <button
+                    className="btn btn--ghost btn--sm"
+                    onClick={handleShare}
+                    disabled={sharedCopied}
+                  >
+                    {sharedCopied ? '✓ 링크 복사됨!' : '🔗 공유하기'}
+                  </button>
                 </div>
               )}
             </section>
           )}
         </main>
       </div>
+      {showSaveModal && (
+        <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3 className="modal-title">📌 템플릿으로 저장</h3>
+            <form onSubmit={handleSaveTemplate}>
+              <div className="modal-field">
+                <label className="modal-label">이름</label>
+                <input
+                  className="modal-input"
+                  type="text"
+                  value={saveName}
+                  onChange={e => setSaveName(e.target.value)}
+                  placeholder="템플릿 이름을 입력하세요"
+                  autoFocus
+                />
+              </div>
+              <div className="modal-field">
+                <label className="modal-label">카테고리</label>
+                <select
+                  className="modal-select"
+                  value={saveCategory}
+                  onChange={e => setSaveCategory(e.target.value)}
+                >
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <p className="modal-note">
+                프롬프트 A{promptB.trim() ? ' + B' : ''}가 저장됩니다.
+              </p>
+              <div className="modal-actions">
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => setShowSaveModal(false)}>
+                  취소
+                </button>
+                <button type="submit" className="btn btn--primary btn--sm" disabled={!saveName.trim()}>
+                  저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
