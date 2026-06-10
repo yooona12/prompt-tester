@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+
 export default function ResultCard({ label, output, loading, score, isWinner }) {
   return (
     <div className={`result-card ${isWinner ? 'result-card--winner' : ''}`}>
@@ -17,7 +19,9 @@ export default function ResultCard({ label, output, loading, score, isWinner }) 
             <span>응답 생성 중...</span>
           </div>
         ) : output ? (
-          <pre className="result-text">{output}</pre>
+          <div className="result-markdown">
+            <ReactMarkdown>{output}</ReactMarkdown>
+          </div>
         ) : (
           <span className="result-placeholder">결과가 여기에 표시됩니다</span>
         )}
